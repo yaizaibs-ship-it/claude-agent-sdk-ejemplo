@@ -106,6 +106,8 @@
   .card code{font-size:12px;background:var(--white);padding:2px 5px;border-radius:5px}
   .card .try{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--white);border-radius:9px;padding:8px 10px;cursor:pointer;font-size:13px;margin-top:6px}
   .card .try:hover{border-color:var(--bobal)}
+  .card h4{margin:14px 0 4px;font-size:14px;font-weight:500;border-top:1px solid var(--line);padding-top:12px}
+  .card .try:disabled{opacity:.5;cursor:default}
 
   @media (max-width:1000px){
     .app{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto}
@@ -169,19 +171,59 @@
 const AGENTS = [
   {id:'sol',  name:'Sol',  role:'Asistente', ej:1, color:'#7CC6A4', pos:[2.4,2.3],
    desc:'Agente simple: solo tiene un system_prompt, sin herramientas.',
-   code:'agente_basico.py 1', tryText:'Dame tres ideas de nombre para una tienda de ropa vintage de fútbol.'},
+   code:'agente_basico.py 1'},
   {id:'tic',  name:'Tic',  role:'Consulta la hora', ej:2, color:'#E3A82B', pos:[8.0,2.4],
    desc:'Usa la herramienta propia hora_actual, permitida como mcp__utilidades__hora_actual.',
-   code:'agente_basico.py 2', tryText:'¿Qué hora es ahora en Madrid y en Nueva York?'},
+   code:'agente_basico.py 2'},
   {id:'dora', name:'Dora', role:'Directora', ej:3, color:'#C8445F', pos:[5.3,3.6],
    desc:'Solo tiene la herramienta Agent: reparte el encargo entre Remo y Vera y presenta el resultado.',
-   code:'agente_basico.py 3', tryText:'Crea y revisa un eslogan para una cafetería de especialidad en el centro de Valencia.'},
+   code:'agente_basico.py 3'},
   {id:'remo', name:'Remo', role:'Redactor', ej:3, sub:true, color:'#6FA8DC', pos:[2.6,6.5],
    desc:'Subagente de Dora. Escribe tres propuestas de eslogan.', code:'AgentDefinition "redactor"'},
   {id:'vera', name:'Vera', role:'Revisora', ej:3, sub:true, color:'#B79CE8', pos:[7.3,6.7],
    desc:'Subagente de Dora. Revisa las propuestas y elige la mejor.', code:'AgentDefinition "revisor"'},
 ];
 const byId = id => AGENTS.find(a => a.id === id);
+
+/* ---------- Qué se le puede pedir a cada uno (con respuesta de demostración) ---------- */
+const hora = tz => new Date().toLocaleTimeString('es-ES', {timeZone: tz, hour:'2-digit', minute:'2-digit'});
+const minutosEn = tz => { const [h, m] = hora(tz).split(':').map(Number); return h * 60 + m; };
+const EXAMPLES = {
+  sol: {
+    intro: 'Sol no tiene herramientas: escribe, resume, explica y propone ideas a partir de lo que le cuentas.',
+    items: [
+      {q:'Dame tres ideas de nombre para una tienda de ropa vintage de fútbol.',
+       a:'Aquí van tres:\n\n1. Segunda Equipación: guiño a las camisetas de toda la vida.\n2. Tiempo de Descuento: piezas con historia que aún tienen partido.\n3. Grada Vieja: para quien echa de menos el fútbol de antes.'},
+      {q:'Reescribe esta frase para Instagram, más cercana: «Abrimos el sábado con nueva colección».',
+       a:'¡Este sábado abrimos las puertas con colección nueva! 🧵 Pásate a verla antes que nadie, que hay piezas únicas y vuelan.'},
+      {q:'Explícame en dos frases qué es un agente de IA.',
+       a:'Un agente de IA es un programa que recibe un objetivo y decide por sí mismo qué pasos dar para cumplirlo. A diferencia de un chat normal, puede usar herramientas (buscar, calcular, leer archivos) y repartir el trabajo entre otros agentes.'},
+    ]},
+  tic: {
+    intro: 'Tic tiene una sola herramienta, hora_actual: pregúntale por horas, diferencias horarias y cuánto falta para algo.',
+    items: [
+      {q:'¿Qué hora es ahora en Madrid y en Nueva York?',
+       a:() => `Ahora mismo son las ${hora('Europe/Madrid')} en Madrid y las ${hora('America/New_York')} en Nueva York: 6 horas de diferencia.`},
+      {q:'¿Qué hora es ahora mismo en Tokio y en Buenos Aires?',
+       a:() => `En Tokio son las ${hora('Asia/Tokyo')} y en Buenos Aires las ${hora('America/Argentina/Buenos_Aires')}.`},
+      {q:'¿Me da tiempo a llamar a un cliente de Londres antes de que cierre a las 18:00?',
+       a:() => { const faltan = 18 * 60 - minutosEn('Europe/London');
+         return faltan > 0
+           ? `Sí. En Londres son las ${hora('Europe/London')}, así que te quedan ${Math.floor(faltan / 60)} h y ${faltan % 60} min antes de que cierre.`
+           : `No: en Londres ya son las ${hora('Europe/London')} y han cerrado. Llama mañana a partir de las 9:00 de allí (las 10:00 en España).`; }},
+    ]},
+  dora: {
+    intro: 'Dora no escribe: encarga eslóganes a Remo, se los pasa a Vera para que elija y te presenta el ganador. Pídele un eslogan para cualquier marca o negocio.',
+    items: [
+      {q:'Crea y revisa un eslogan para una cafetería de especialidad en el centro de Valencia.',
+       a:'Remo propone: «Valencia, en cada taza», «Café de origen, alma del centro» y «Tu pausa, tostada aquí».\n\nVera elige «Valencia, en cada taza»: es corta, local y fácil de recordar.'},
+      {q:'Crea y revisa un eslogan para una bodega de bobal de Utiel-Requena.',
+       a:'Remo propone: «Bobal, la uva que nos hace únicos», «Tierra alta, vino hondo» y «Lo nuestro se bebe despacio».\n\nVera elige «Tierra alta, vino hondo»: suena a meseta, tiene ritmo y no necesita explicación.'},
+      {q:'Crea y revisa un eslogan para una tienda de camisetas de fútbol vintage en Barcelona.',
+       a:'Remo propone: «Camisetas con más partidos que tú», «El fútbol de antes, en tu armario» y «Cada camiseta, una temporada».\n\nVera elige «Camisetas con más partidos que tú»: tiene humor, es concreta y se recuerda a la primera.'},
+    ]},
+};
+EXAMPLES.remo = EXAMPLES.vera = EXAMPLES.dora;
 let selected = byId('sol');
 let busy = false;
 
@@ -365,10 +407,15 @@ function select(id){
   const c = document.createElement('p'); c.innerHTML = '<code></code>'; c.firstChild.textContent = a.code;
   card.append(h, p, c);
   if (a.sub){ const n = document.createElement('p'); n.textContent = 'Los subagentes no reciben mensajes directos: escribe a Dora y ella les pasará el encargo.'; card.append(n); }
-  const t = selected.tryText;
-  const tb = document.createElement('button'); tb.className = 'try'; tb.type = 'button'; tb.textContent = `Probar: «${t}»`;
-  tb.onclick = () => { input.value = t; input.focus(); };
-  card.append(tb);
+  const ex = EXAMPLES[selected.id];
+  const h4 = document.createElement('h4'); h4.textContent = `Qué le puedes pedir a ${selected.name}`;
+  const intro = document.createElement('p'); intro.textContent = ex.intro;
+  card.append(h4, intro);
+  for (const it of ex.items){
+    const tb = document.createElement('button'); tb.className = 'try'; tb.type = 'button'; tb.textContent = it.q;
+    tb.onclick = () => { input.value = it.q; document.getElementById('chat').requestSubmit(); };
+    card.append(tb);
+  }
   renderTeam();
 }
 
@@ -390,6 +437,9 @@ async function ping(){
 urlInput.addEventListener('change', () => { store.set('srvUrl', baseUrl()); ping(); });
 
 function demoReply(ej, text){
+  const agent = AGENTS.find(a => a.ej === ej && !a.sub);
+  const hit = EXAMPLES[agent.id].items.find(it => it.q === text);
+  if (hit) return 'Modo demo. ' + (typeof hit.a === 'function' ? hit.a() : hit.a);
   if (ej === 2){
     const f = tz => new Date().toLocaleTimeString('es-ES', {timeZone: tz, hour:'2-digit', minute:'2-digit'});
     return `Modo demo, con la hora de tu navegador:\nMadrid: ${f('Europe/Madrid')}\nNueva York: ${f('America/New_York')}\n\nCon el servidor encendido, Tic usaría la herramienta hora_actual.`;
