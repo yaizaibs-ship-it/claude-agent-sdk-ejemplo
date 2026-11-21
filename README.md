@@ -86,6 +86,23 @@ Respuesta:
 
 `ejemplo` puede ser `1`, `2` o `3` y elige qué agente responde. Con el servidor en marcha, la documentación interactiva está en http://localhost:8000/docs.
 
+## Sala de agentes (interfaz web)
+
+En `docs/index.html` hay una interfaz lista para usar: una sala isométrica con los cinco agentes del proyecto. Está publicada con GitHub Pages en:
+
+**https://yaizaibs-ship-it.github.io/claude-agent-sdk-ejemplo/**
+
+| Agente | Qué hace | Ejemplo |
+| --- | --- | --- |
+| Sol | Asistente sin herramientas | 1 |
+| Tic | Usa la herramienta `hora_actual` | 2 |
+| Dora | Directora: delega con la herramienta `Agent` | 3 |
+| Remo y Vera | Subagentes de Dora (redactor y revisora) | 3 |
+
+- **Sin servidor**, la sala funciona en modo demo: las animaciones son reales, pero las respuestas son de ejemplo.
+- **Con el servidor encendido** en tu ordenador (`uvicorn server:app`), la sala detecta `http://localhost:8000` y las respuestas vienen de Claude. La dirección del servidor se puede cambiar en la barra lateral.
+- Chrome puede pedirte permiso para que la página acceda a dispositivos de tu red local: acéptalo, porque así la web publicada puede hablar con tu `localhost`.
+
 ## Conectarlo a una interfaz propia
 
 Tu interfaz (una web en HTML/JS, React, una app no-code, etc.) solo tiene que hacer un `POST` a `/chat` y mostrar el campo `respuesta`:

@@ -26,8 +26,13 @@ app = FastAPI(title="Agente Claude - ejemplo")
 # Permite llamar a la API desde una web local (ajusta los orígenes en producción)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5500"],
-    allow_methods=["POST"],
+    allow_origins=[
+        "https://yaizaibs-ship-it.github.io",  # la sala de agentes publicada en GitHub Pages
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5500",
+    ],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
